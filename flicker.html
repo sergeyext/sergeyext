@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	</head>
+	<body>
+		The colored square below flickers in Chrome x64 on Windows, and works fine anywhere else I've tested. Why?
+		<br>
+		If it stops flickering, hover your mouse over tabs bar to resume.
+		<br>
+		<canvas id="canvas"  width="800" height="600">No canvas</canvas>
+
+		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+			precision mediump float;
+			smooth out vec2 pointCoord;
+
+			const vec2 vertexCoord[] = vec2[](
+				vec2(0.0, 0.0),
+				vec2(1.0, 0.0),
+				vec2(1.0, 1.0),
+				vec2(0.0, 0.0),
+				vec2(1.0, 1.0),
+				vec2(0.0, 1.0)
+			);
+
+			void main()
+			{
+				gl_Position = vec4(vertexCoord[gl_VertexID], 0.0, 1.0);
+				pointCoord = vertexCoord[gl_VertexID];
+			}
+		</script>
+
+		<script id="fragmentShader" type="x-shader/x-fragment">#version 300 es
+			precision mediump float;
+
+			out vec4 outFragColor;
+
+			smooth in vec2 pointCoord;
+
+			void main()
+			{
+				outFragColor = vec4(pointCoord, 0.0, 1.0);
+			}
+		</script>
+
+		<script type='text/javascript'>
+
+			// Initialize
+			var canvas = document.getElementById("canvas");
+			var gl = canvas.getContext("webgl2");
+			if (!gl) {
+				console.log("Could not get context.");
+				throw new Error();
+			}
+			var checkError = function()
+			{
+				if (gl.getError() != gl.NO_ERROR) {
+					console.log("Webgl error.");
+					throw new Error();
+				}
+			}
+
+			// GL setup
+			gl.clearColor(0, 0, 0, 1);
+			gl.disable(gl.BLEND);
+			gl.disable(gl.DEPTH_TEST);
+			gl.depthMask(gl.FALSE);
+			gl.stencilMask(gl.FALSE);
+			
+			// Shader
+			var vertexSource = document.getElementById("vertexShader").text;
+			var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+			gl.shaderSource(vertexShader, vertexSource);
+			gl.compileShader(vertexShader);
+			console.log("Vertex log: " + gl.getShaderInfoLog(vertexShader));
+			
+			var fragmentSource = document.getElementById("fragmentShader").text;
+			var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+			gl.shaderSource(fragmentShader, fragmentSource);
+			gl.compileShader(fragmentShader);
+			console.log("Fragment log: " + gl.getShaderInfoLog(fragmentShader));
+
+			var program = gl.createProgram();
+			gl.attachShader(program, vertexShader);
+			gl.attachShader(program, fragmentShader);
+			gl.linkProgram(program);
+			console.log("Link log: " + gl.getProgramInfoLog(program));
+			checkError();
+			gl.useProgram(program);
+
+			var mainLoop = function()
+			{
+				gl.clear(gl.COLOR_BUFFER_BIT);
+				gl.drawArrays(gl.TRIANGLES, 0, 6);
+				window.requestAnimationFrame(mainLoop);
+			}
+
+			window.requestAnimationFrame(mainLoop);
+		</script>
+	</body>
+</html>
