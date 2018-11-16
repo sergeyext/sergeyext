@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	</head>
+	<body>
+		This is shader linking freeze bug reproduction.<br>
+		Reproducible in Chrome and Firefox on Windows 10 x64 with Nvidia hardware.<br>
+		<br>
+		Steps:<br>
+		1) Drop caches (especially in Chrome, as it seems to cache shader binaries)<br>
+		2) Open console<br>
+		3) Load this page.<br>
+		<br>
+		Results:<br>
+		Chrome should freeze for 10-20 seconds and print linking time approx 0.00001 seconds.<br>
+		Firefox should freeze for 10-20 seconds and then print correct time.<br>
+		<canvas id="canvas"  width="800" height="600">No canvas</canvas>
+
+		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+			precision mediump float;
+
+			struct InstancingData
+			{
+				mat4 transformation;
+			};
+
+			#define MAX_INSTANCE_COUNT 800
+
+			layout(std140) uniform InstanceBlock
+			{
+				InstancingData instances[MAX_INSTANCE_COUNT];
+			};
+
+			void main()
+			{
+				gl_Position = vec4(1.0) * instances[gl_InstanceID].transformation;
+			}
+		</script>
+
+		<script id="fragmentShader" type="x-shader/x-fragment">#version 300 es
+			precision mediump float;
+			out vec4 outFragColor;
+
+			void main()
+			{
+				outFragColor = vec4(0.0);
+			}
+		</script>
+
+		<script type='text/javascript'>
+
+			// Initialize
+			var canvas = document.getElementById("canvas");
+			var gl = canvas.getContext("webgl2");
+			if (!gl) {
+				console.log("Could not get context.");
+				throw new Error();
+			}
+			var checkError = function()
+			{
+				if (gl.getError() != gl.NO_ERROR) {
+					console.log("Webgl error.");
+					throw new Error();
+				}
+			}
+
+			// Shader
+			const vertexSource = document.getElementById("vertexShader").text;
+			const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+			gl.shaderSource(vertexShader, vertexSource);
+			gl.compileShader(vertexShader);
+			console.log("Vertex log: " + gl.getShaderInfoLog(vertexShader));
+
+			const fragmentSource = document.getElementById("fragmentShader").text;
+			const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+			gl.shaderSource(fragmentShader, fragmentSource);
+			gl.compileShader(fragmentShader);
+			console.log("Fragment log: " + gl.getShaderInfoLog(fragmentShader));
+
+			const program = gl.createProgram();
+			gl.attachShader(program, vertexShader);
+			gl.attachShader(program, fragmentShader);
+
+			console.log("Prelink");
+			const t0 = performance.now();
+			gl.linkProgram(program);
+			console.log("Postlink");
+			console.log("Link time: " + ((performance.now() - t0) / 1000.0));
+
+			console.log("Link log: " + gl.getProgramInfoLog(program));
+			checkError();
+		</script>
+	</body>
+</html>
