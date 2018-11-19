@@ -5,8 +5,9 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	</head>
 	<body>
-		This page shows two colored squares on Linux and Android, and one colored square on Windows 10 x64.<br>
+		This page shows two colored squares on Linux, and one colored square on Windows 10 x64.<br>
 		Tested in Chrome and Firefox.<br>
+		See also <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=906683">this issue.</a><br>
 		<canvas id="canvas"  width="800" height="600">No canvas</canvas>
 
 		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
@@ -20,23 +21,18 @@
 				vec2(1.0, 1.0),
 				vec2(0.0, 1.0)
 			);
+			const float colorPixelSize = 32.0;
 
 			uniform vec2 sqOffset;
 
-			layout(std140) uniform InstanceBlock
-			{
-				vec4 instances[1024];
-			};
+			vec2 scale = vec2(256.0) / vec2(800.0, 600.0);
 
-			vec2 pixelSize = vec2(8.0) / vec2(800.0, 600.0);
-
-			flat out vec4 c;
+			smooth out vec2 c;
 
 			void main()
 			{
-				c = instances[gl_InstanceID];
-				vec2 pos = vec2(uint(gl_InstanceID) / 32u, uint(gl_InstanceID) % 32u) + sqOffset;
-				gl_Position = vec4((vertexCoord[gl_VertexID] + pos) * pixelSize, 0.0, 1.0);
+				gl_Position = vec4((vertexCoord[gl_VertexID] + sqOffset) * scale, 0.0, 1.0);
+				c = vertexCoord[gl_VertexID] * 32.0;
 			}
 		</script>
 
@@ -44,11 +40,18 @@
 			precision mediump float;
 			out vec4 outFragColor;
 
-			flat in vec4 c;
+			const float colorPixelSize = 32.0;
+
+			smooth in vec2 c;
+
+			layout(std140) uniform InstanceBlock
+			{
+				vec4 colors[1024];
+			};
 
 			void main()
 			{
-				outFragColor = c;
+				outFragColor = colors[int(floor(c.x) * colorPixelSize + floor(c.y))];
 				outFragColor.a = 1.0;
 			}
 		</script>
@@ -139,11 +142,11 @@
 
 			gl.uniform2f(sqOffset, 0.0, 0.0);
 			gl.bindBufferRange(gl.UNIFORM_BUFFER, 0, ubo, 0, maxUboSize);
-			gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, quadSize * quadSize);
+			gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-			gl.uniform2f(sqOffset, 32.0, 0.0);
+			gl.uniform2f(sqOffset, 1.0, 0.0);
 			gl.bindBufferRange(gl.UNIFORM_BUFFER, 0, ubo, maxUboSize, maxUboSize);
-			gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, quadSize * quadSize);
+			gl.drawArrays(gl.TRIANGLES, 0, 6);
 		</script>
 	</body>
 </html>
