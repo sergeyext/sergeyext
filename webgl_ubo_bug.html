@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	</head>
+	<body>
+		This page shows two colored squares on Linux, and one colored square on Windows 10 x64.<br>
+		Tested in Chrome and Firefox.<br>
+		<canvas id="canvas"  width="800" height="600">No canvas</canvas>
+
+		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+			precision mediump float;
+
+			const vec2 vertexCoord[] = vec2[](
+				vec2(0.0, 0.0),
+				vec2(1.0, 0.0),
+				vec2(1.0, 1.0),
+				vec2(0.0, 0.0),
+				vec2(1.0, 1.0),
+				vec2(0.0, 1.0)
+			);
+
+			uniform vec2 sqOffset;
+
+			layout(std140) uniform InstanceBlock
+			{
+				vec4 instances[1024];
+			};
+
+			vec2 pixelSize = vec2(8.0) / vec2(800.0, 600.0);
+
+			flat out vec4 c;
+
+			void main()
+			{
+				c = instances[gl_InstanceID];
+				vec2 pos = vec2(uint(gl_InstanceID) / 32u, uint(gl_InstanceID) % 32u) + sqOffset;
+				gl_Position = vec4((vertexCoord[gl_VertexID] + pos) * pixelSize, 0.0, 1.0);
+			}
+		</script>
+
+		<script id="fragmentShader" type="x-shader/x-fragment">#version 300 es
+			precision mediump float;
+			out vec4 outFragColor;
+
+			flat in vec4 c;
+
+			void main()
+			{
+				outFragColor = c;
+				outFragColor.a = 1.0;
+			}
+		</script>
+
+		<script type='text/javascript'>
+			const quadSize = 32;
+
+			function fillColors(fb, offset)
+			{
+				for (var i = 0; i < quadSize; ++i) {
+					for (var j = 0; j < quadSize; ++j) {
+						const idx = ((i * quadSize) + j) * 4 + offset;
+						fb[idx + 0] = i / quadSize;
+						fb[idx + 1] = j / quadSize;
+						fb[idx + 2] = 0.5;
+						fb[idx + 3] = 1.0;
+					}
+				}
+			}
+
+			// Initialize
+			var canvas = document.getElementById("canvas");
+			var gl = canvas.getContext("webgl2");
+			if (!gl) {
+				console.log("Could not get context.");
+				throw new Error();
+			}
+			var checkError = function()
+			{
+				if (gl.getError() != gl.NO_ERROR) {
+					console.log("Webgl error.");
+					throw new Error();
+				}
+			}
+
+			gl.clearColor(0, 0, 0, 1);
+			gl.disable(gl.BLEND);
+			gl.disable(gl.DEPTH_TEST);
+
+			// Shader
+			const vertexSource = document.getElementById("vertexShader").text;
+			const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+			gl.shaderSource(vertexShader, vertexSource);
+			gl.compileShader(vertexShader);
+			console.log("Vertex log: " + gl.getShaderInfoLog(vertexShader));
+
+			const fragmentSource = document.getElementById("fragmentShader").text;
+			const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+			gl.shaderSource(fragmentShader, fragmentSource);
+			gl.compileShader(fragmentShader);
+			console.log("Fragment log: " + gl.getShaderInfoLog(fragmentShader));
+
+			const program = gl.createProgram();
+			gl.attachShader(program, vertexShader);
+			gl.attachShader(program, fragmentShader);
+
+			gl.linkProgram(program);
+			console.log("Link log: " + gl.getProgramInfoLog(program));
+			checkError();
+
+			gl.useProgram(program);
+
+			// Uniform
+			const sqOffset = gl.getUniformLocation(program, "sqOffset");
+
+			// UBO
+			const maxUboSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
+			const bufSize = maxUboSize * 2;
+			const ubo = gl.createBuffer();
+			gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+			gl.bufferData(gl.UNIFORM_BUFFER, bufSize, gl.STATIC_DRAW);
+
+			// UBO data
+			var buffer = new ArrayBuffer(bufSize);
+			var fb = new Float32Array(buffer);
+			fillColors(fb, 0);
+			const floatSize = 4;
+			fillColors(fb, maxUboSize / floatSize);
+			gl.bufferSubData(gl.UNIFORM_BUFFER, 0, buffer);
+
+			// UBO binding
+			gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+			const blockIndex = gl.getUniformBlockIndex(program, 'InstanceBlock');
+			gl.uniformBlockBinding(program, blockIndex, 0);
+
+			// Render
+			gl.clear(gl.COLOR_BUFFER_BIT);
+
+			gl.uniform2f(sqOffset, 0.0, 0.0);
+			gl.bindBufferRange(gl.UNIFORM_BUFFER, 0, ubo, 0, maxUboSize);
+			gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, quadSize * quadSize);
+
+			gl.uniform2f(sqOffset, 32.0, 0.0);
+			gl.bindBufferRange(gl.UNIFORM_BUFFER, 0, ubo, maxUboSize, maxUboSize);
+			gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, quadSize * quadSize);
+		</script>
+	</body>
+</html>
+
