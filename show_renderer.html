@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	</head>
+	<body>
+		<canvas id="canvas"  width="1" height="1">No canvas</canvas>
+		<div id="vendor"></div>
+		<div id="renderer"></div>
+		<script type='text/javascript'>
+
+			// Initialize
+			var canvas = document.getElementById("canvas");
+			var gl = canvas.getContext("webgl2");
+			if (!gl) {
+				console.log("Could not get context.");
+				throw new Error();
+			}
+			var checkError = function()
+			{
+				if (gl.getError() != gl.NO_ERROR) {
+					console.log("Webgl error.");
+					throw new Error();
+				}
+			}
+
+			const ri = gl.getExtension("WEBGL_debug_renderer_info");
+			v = document.getElementById("vendor");
+			r = document.getElementById("renderer");
+			if (ri === null) v.textContent = "Error: could not get unmasked hw info."
+			else {
+				v.textContent = "Vendor: " + gl.getParameter(ri.UNMASKED_VENDOR_WEBGL);
+				r.textContent = "Renderer: " + gl.getParameter(ri.UNMASKED_RENDERER_WEBGL);
+			}
+
+		</script>
+	</body>
+</html>
