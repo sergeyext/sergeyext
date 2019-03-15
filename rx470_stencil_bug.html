@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en-us">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	</head>
+	<body>
+		<canvas id="canvas"  width="800" height="600">No canvas</canvas>
+
+		<script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+			precision mediump float;
+			
+			layout(location = 0) in vec2 vertexCoord;
+
+			uniform vec2 size;
+			uniform vec2 position;
+
+			out vec2 texCoord;
+
+			void main()
+			{
+				gl_Position = vec4(((vertexCoord * 2.0) - vec2(1.0)) * size + position, 0.0, 1.0);
+				texCoord = vertexCoord;
+			}
+		</script>
+
+		<script id="fragmentShader" type="x-shader/x-fragment">#version 300 es
+			precision mediump float;
+
+			in vec2 texCoord;
+			uniform sampler2D tex;
+			out vec4 outFragColor;
+
+			void main()
+			{
+				outFragColor = texture(tex, texCoord);
+			}
+		</script>
+
+		<script type='text/javascript'>
+
+			// Initialize
+			var canvas = document.getElementById("canvas");
+			var gl = canvas.getContext("webgl2");
+			if (!gl) {
+				console.log("Could not get context.");
+				throw new Error();
+			}
+			var checkError = function()
+			{
+				if (gl.getError() != gl.NO_ERROR) {
+					console.log("Webgl error.");
+					throw new Error();
+				}
+			}
+
+			// GL setup
+			gl.clearColor(0.5, 0.5, 0, 1);
+			gl.clearStencil(0x0);
+			gl.clearDepth(0.0);
+			gl.disable(gl.BLEND);
+			gl.disable(gl.DEPTH_TEST);
+			gl.enable(gl.STENCIL_TEST);
+			
+			// Shader
+			var vertexSource = document.getElementById("vertexShader").text;
+			var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+			gl.shaderSource(vertexShader, vertexSource);
+			gl.compileShader(vertexShader);
+			console.log("Vertex log: " + gl.getShaderInfoLog(vertexShader));
+			
+			var fragmentSource = document.getElementById("fragmentShader").text;
+			var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+			gl.shaderSource(fragmentShader, fragmentSource);
+			gl.compileShader(fragmentShader);
+			console.log("Fragment log: " + gl.getShaderInfoLog(fragmentShader));
+
+			var program = gl.createProgram();
+			gl.attachShader(program, vertexShader);
+			gl.attachShader(program, fragmentShader);
+			gl.linkProgram(program);
+			console.log("Link log: " + gl.getProgramInfoLog(program));
+			checkError();
+			gl.useProgram(program);
+			gl.uniform1i(gl.getUniformLocation(program, "tex"), 0);
+			checkError();
+
+			const uSize = gl.getUniformLocation(program, "size");
+			const uPosition = gl.getUniformLocation(program, "position");
+
+			// Geometry
+			gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+			  0.0, 0.0,
+			  1.0, 0.0,
+			  1.0, 1.0,
+			  0.0, 0.0,
+			  1.0, 1.0,
+			  0.0, 1.0
+			]), gl.STATIC_DRAW);
+			gl.enableVertexAttribArray(0);
+			gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+			// Framebuffer 0
+			const d0 = gl.createTexture();
+			const fb0 = gl.createFramebuffer();
+			gl.bindTexture(gl.TEXTURE_2D, d0);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH24_STENCIL8, 800, 600, 0, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8, null);
+			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb0);
+			gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, d0, 0);
+
+			// Framebuffer 1
+			const at1 = gl.createTexture();
+			const d1 = gl.createTexture();
+			const fb1 = gl.createFramebuffer();
+			gl.bindTexture(gl.TEXTURE_2D, at1);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 800, 600, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+			gl.bindTexture(gl.TEXTURE_2D, d1);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH24_STENCIL8, 800, 600, 0, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8, null);
+			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb1);
+			gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, at1, 0);
+			gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, d1, 0);
+
+			gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+			gl.activeTexture(gl.TEXTURE0);
+			gl.useProgram(program);
+
+			var angle = 0.0;
+			const angleStep = 0.03;
+			const radius = 0.4;
+
+			redArr = new Uint8Array([96, 0, 0, 255]);
+			const red1x1 = gl.createTexture();
+			gl.bindTexture(gl.TEXTURE_2D, red1x1);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, redArr);
+			gl.bindTexture(gl.TEXTURE_2D, null);
+
+			var mainLoop = function()
+			{
+				const posX = Math.cos(angle) * radius;
+				const posY = Math.sin(angle) * radius;
+				angle += angleStep;
+				if (angle >= Math.PI * 2.0) angle = 0.0;
+
+				gl.uniform2f(uSize, 0.2, 0.2);
+				gl.uniform2f(uPosition, posX, posY);
+
+				// Fill stencil in fb0
+				gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb0);
+				gl.bindTexture(gl.TEXTURE_2D, red1x1);
+				gl.clear(gl.STENCIL_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				gl.stencilFunc(gl.ALWAYS, 0x42, 0xFF);
+				gl.stencilOp(gl.REPLACE, gl.REPLACE, gl.REPLACE);
+				gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+				// Copy stencil from fb0 to fb1
+				gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb0);
+				gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb1);
+				gl.blitFramebuffer(0, 0, 800, 600, 0, 0, 800, 600, gl.STENCIL_BUFFER_BIT | gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+
+				// Draw fullscreen red rect to fb1, discarding some fragments by stencil
+				gl.uniform2f(uSize, 1.0, 1.0);
+				gl.uniform2f(uPosition, 0.0, 0.0);
+				gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb1);
+				gl.bindTexture(gl.TEXTURE_2D, red1x1);
+				gl.clear(gl.COLOR_BUFFER_BIT);
+				gl.stencilFunc(gl.EQUAL, 0x42, 0xFF);
+				gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+				gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+				// Draw fb1 content
+				gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+				gl.bindTexture(gl.TEXTURE_2D, at1);
+				gl.clear(gl.COLOR_BUFFER_BIT);
+				gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+				window.requestAnimationFrame(mainLoop);
+			}
+
+			window.requestAnimationFrame(mainLoop);
+		</script>
+	</body>
+</html>
