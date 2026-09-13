@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sergey Karchevsky — Graphics Programmer</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --text: #15171a;
+      --muted: #646b75;
+      --line: #dde1e7;
+      --accent: #2f5fd0;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111317;
+        --card: #191c21;
+        --text: #f2f4f7;
+        --muted: #a5adb8;
+        --line: #2b3038;
+        --accent: #8fb2ff;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(760px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 72px 0;
+    }
+
+    header { margin-bottom: 32px; }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(30px, 5vw, 44px);
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+    }
+
+    .role {
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .portfolio-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .links {
+      display: grid;
+      gap: 12px;
+    }
+
+    a.card {
+      display: block;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+      color: inherit;
+      text-decoration: none;
+      transition: transform 120ms ease, border-color 120ms ease;
+    }
+
+    a.card:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    .title {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: baseline;
+      font-weight: 650;
+      font-size: 17px;
+    }
+
+    .arrow { color: var(--accent); }
+
+    .description {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Sergey Karchevsky</h1>
+      <p class="role">Graphics Programmer / Game Engine Developer</p>
+      <p class="portfolio-note">Selected games, graphics experiments, technical articles and code.</p>
+    </header>
+
+    <section class="links" aria-label="Portfolio links">
+      <a class="card" href="https://store.steampowered.com/app/1022450/War_Selection/">
+        <div class="title"><span>War Selection</span><span class="arrow">↗</span></div>
+        <div class="description">RTS built on the in-house engine I worked on since 2016</div>
+      </a>
+
+      <a class="card" href="https://store.steampowered.com/app/1965470/Barkhan/">
+        <div class="title"><span>Barkhan</span><span class="arrow">↗</span></div>
+        <div class="description">RTS built on the in-house engine I worked on since 2016</div>
+      </a>
+
+      <a class="card" href="https://itch.io/jam/gaijin-jam/rate/1161213">
+        <div class="title"><span>О — значит Орда</span><span class="arrow">↗</span></div>
+        <div class="description">Game jam project</div>
+      </a>
+
+      <a class="card" href="https://www.shadertoy.com/user/frozenshady">
+        <div class="title"><span>Shadertoy Profile</span><span class="arrow">↗</span></div>
+        <div class="description">Real-time graphics and shader experiments</div>
+      </a>
+
+      <a class="card" href="https://habr.com/users/SergeySib/articles/">
+        <div class="title"><span>Habr</span><span class="arrow">↗</span></div>
+        <div class="description">Technical articles in Russian</div>
+      </a>
+
+      <a class="card" href="https://github.com/sergeyext">
+        <div class="title"><span>GitHub</span><span class="arrow">↗</span></div>
+        <div class="description">Code and project repositories</div>
+      </a>
+    </section>
+  </main>
+</body>
+</html>
